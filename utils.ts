@@ -28,3 +28,10 @@ export function setUnion<T>(a: Set<T>, b: Set<T>): T[] {
 
 	return result;
 }
+
+export function timeit(fn: () => void) {
+	const start = Date.now();
+	fn();
+	const end = Date.now();
+	console.log(`Run in ${(end - start).toFixed(0)}ms`);
+}
