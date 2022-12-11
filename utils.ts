@@ -35,3 +35,17 @@ export function timeit(fn: () => void) {
 	const end = Date.now();
 	console.log(`Run in ${(end - start).toFixed(0)}ms`);
 }
+
+export class Counter<K = any> extends Map<K, number> {
+	get(key: K) {
+		const value = super.get(key);
+		return value ?? 0;
+	}
+
+	inc(key: K, value: number = 1) {
+		const current = this.get(key);
+		const newValue = current + value;
+		this.set(key, newValue);
+		return newValue;
+	}
+}
