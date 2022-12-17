@@ -59,3 +59,7 @@ export function adjacent4(x: number, y: number) {
 	const deltas = [[-1, 0], [1, 0], [0, -1], [0, 1],];
 	return deltas.map(([dx, dy]) => [x + dx, y + dy]);
 }
+
+export function clamp(value: number, min: number, max: number) {
+	return Math.max(min, Math.min(max, value));
+}
