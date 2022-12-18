@@ -1,3 +1,4 @@
+import { off } from "process";
 import { clamp, readInput, timeit } from "../utils";
 
 interface Point {
@@ -133,9 +134,102 @@ function part1(text: string) {
 	return offsetY - Y_OFFSET;
 }
 
+function getStateHash(instructionIndex: number, shapeIndex: number, highestCols: number[]): string {
+	const minY = Math.max(...highestCols);
+	return [instructionIndex, shapeIndex, highestCols.map(v => v - minY).join("_")].join("...");
+}
+
+function part2(text: string) {
+	const taken = new Set<string>();
+
+	let instructionIndex = 0;
+	let maxY = 0;
+	let offsetX = START_X;
+	let offsetY = maxY + Y_OFFSET;
+	let rocksCount = 0;
+	let shape = SHAPES[rocksCount];
+
+	const highestCols = new Array(WIDTH).fill(0);
+
+	const cache = new Map<string, { prevRocksCount: number; prevMaxY: number }>();
+	let yolo = 0;
+
+	const N = 1000000000000;
+	// const N = 2022;
+	while (rocksCount < N) {
+		const hash = getStateHash(instructionIndex, rocksCount % SHAPES.length, highestCols);
+		if (cache.has(hash) && !yolo) {
+			const { prevRocksCount, prevMaxY } = cache.get(hash)!;
+			const rocksAccumulated = rocksCount - prevRocksCount;
+			const maxYAccumulated = maxY - prevMaxY;
+			yolo = Math.floor((N - rocksCount) / rocksAccumulated) * maxYAccumulated;
+			rocksCount += Math.floor((N - rocksCount) / rocksAccumulated) * rocksAccumulated;
+		}
+		cache.set(hash, { prevRocksCount: rocksCount, prevMaxY: maxY });
+
+		const dir = text[instructionIndex];
+		const dx = dir === ">" ? 1 : -1;
+		instructionIndex = (instructionIndex + 1) % text.length;
+		const newOffsetX = clamp(offsetX + dx, 0, WIDTH - shape.width);
+
+		if (newOffsetX !== offsetX) {
+			// figure out if moving horizontally is allowed
+			let canMoveHorizontally = true;
+			for (const point of shape.points) {
+				const x = newOffsetX + point.x;
+				const y = offsetY - point.y;
+
+				if (taken.has(hashPoint({ x, y }))) {
+					canMoveHorizontally = false;
+					break;
+				}
+			}
+
+			// move horizontally if we can
+			if (canMoveHorizontally) {
+				offsetX = newOffsetX;
+			}
+		}
+
+		// figure out if dropping down is allowed
+		let canDropDown = offsetY > 0;
+		for (let dx = 0; dx < shape.width; dx++) {
+			const x = offsetX + dx;
+			const y = offsetY - 1 - shape.yOffsets[dx];
+
+			if (taken.has(hashPoint({ x, y }))) {
+				canDropDown = false;
+				break;
+			}
+		}
+
+		if (canDropDown) {
+			offsetY -= 1;
+		} else {
+			for (const point of shape.points) {
+				const x = offsetX + point.x;
+				const y = offsetY - point.y;
+				maxY = Math.max(maxY, y);
+				taken.add(hashPoint({ x, y }));
+
+				highestCols[x] = Math.max(highestCols[x], y);
+			}
+
+			offsetX = START_X;
+			offsetY = maxY + Y_OFFSET + 1;
+			rocksCount++;
+			shape = SHAPES[rocksCount % SHAPES.length];
+		}
+	}
+
+	// printTaken(taken, maxY);
+
+	return offsetY - Y_OFFSET + yolo;
+}
+
 // console.dir(SHAPES, { depth: 99 });
 
 const text = readInput();
 
 timeit(() => console.log(part1(text), 3161));
-// timeit(() => console.log(part2(text)));
+timeit(() => console.log(part2(text), 1575931232076));
