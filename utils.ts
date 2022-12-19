@@ -63,3 +63,7 @@ export function adjacent4(x: number, y: number) {
 export function clamp(value: number, min: number, max: number) {
 	return Math.max(min, Math.min(max, value));
 }
+
+export function parseInts(text: string): number[] {
+	return [...text.matchAll(/-?\d+/g)].map(match => Number(match[0]));
+}
