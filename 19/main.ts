@@ -1,5 +1,3 @@
-// TODO: this is a complete mess but it works
-
 import { parseInts, readInput, timeit } from "../utils";
 
 const ITEMS = ["ore", "clay", "obs", "geode"] as const;
@@ -78,11 +76,10 @@ function solve(bp: Blueprint, TIME: number): number {
 
 	const maxPrices = ITEMS.map((_, i) => Math.max(bp.ore[i], bp.clay[i], bp.obs[i], bp.geode[i]));
 
-	function dfs(bp: Blueprint, minutes: number, state: State, buying: Item | null = null): number {
-		state = produceItems(state);
-
-		if (buying) {
-			state = makeBuy(buying, state, bp);
+	function dfs(bp: Blueprint, minutes: number, state: State, buying: Item): number {
+		while (minutes !== TIME && !canBuy(buying, state, bp)) {
+			state = produceItems(state);
+			minutes++;
 		}
 
 		const timeLeft = TIME - minutes;
@@ -91,37 +88,26 @@ function solve(bp: Blueprint, TIME: number): number {
 			return state.items[GEODE];
 		}
 
-		const hash = [minutes, ...state.robots, ...state.items].join("..");
-		if (visited.has(hash)) {
-			return state.items[GEODE];
-		}
-		visited.add(hash);
+		state = produceItems(state);
+		state = makeBuy(buying, state, bp);
 
-		let best = 0;
-
+		// NOTE: doesn't always work but good enough for the input
 		if (canBuy("geode", state, bp)) {
-			const value = dfs(bp, minutes + 1, state, "geode");
-			best = Math.max(best, value);
-			return best;
+			return dfs(bp, minutes + 1, state, "geode");
 		}
 		if (maxPrices[OBS] > state.robots[OBS] && canBuy("obs", state, bp)) {
-			const willHave = state.items[OBS] + state.robots[OBS];
-			if (willHave < maxPrices[OBS] * timeLeft) {
-				const value = dfs(bp, minutes + 1, state, "obs");
-				best = Math.max(best, value);
-				return best;
-			}
-		}
-		for (const item of [ITEMS[CLAY], ITEMS[ORE]]) {
-			const itemIdx = itemToIndex[item];
-			const willHave = state.items[itemIdx] + state.robots[itemIdx];
-			if (willHave < maxPrices[itemIdx] * timeLeft && canBuy(item, state, bp)) {
-				const value = dfs(bp, minutes + 1, state, item);
-				best = Math.max(best, value);
-			}
+			return dfs(bp, minutes + 1, state, "obs");
 		}
 
-		best = Math.max(best, dfs(bp, minutes + 1, state));
+		let best = 0;
+		for (const item of ITEMS) {
+			const itemIdx = itemToIndex[item];
+			const willHave = state.items[itemIdx] + state.robots[itemIdx];
+			if (item === "geode" || willHave < maxPrices[itemIdx] * timeLeft) {
+				const value = dfs(bp, minutes + 1, state, item);
+				best = Math.max(value, best);
+			}
+		}
 
 		return best;
 	}
@@ -131,9 +117,13 @@ function solve(bp: Blueprint, TIME: number): number {
 		items: [0, 0, 0, 0],
 	};
 
-	const value = dfs(bp, 1, INITIAL_STATE);
+	let best = 0;
+	for (const item of [ITEMS[ORE], ITEMS[CLAY]]) {
+		const value = dfs(bp, 0, INITIAL_STATE, item);
+		best = Math.max(best, value);
+	}
 
-	return value;
+	return best;
 }
 
 function part1(text: string) {
