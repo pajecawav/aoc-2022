@@ -56,7 +56,13 @@ export function fits(x: number, y: number, width: number, height: number) {
 
 export function adjacent4(x: number, y: number) {
 	// prettier-ignore
-	const deltas = [[-1, 0], [1, 0], [0, -1], [0, 1],];
+	const deltas = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+	return deltas.map(([dx, dy]) => [x + dx, y + dy]);
+}
+
+export function adjacent8(x: number, y: number) {
+	// prettier-ignore
+	const deltas = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]];
 	return deltas.map(([dx, dy]) => [x + dx, y + dy]);
 }
 
